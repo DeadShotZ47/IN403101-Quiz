@@ -1,95 +1,34 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+﻿import Link from "next/link";
 
-export default function Home() {
+const HomePage = () => {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <main className="page-container home-page">
+      <section className="home-hero">
+        <h1>Classroom Community</h1>
+        <p>
+          แพลตฟอร์มสำหรับนักศึกษาที่จะช่วยให้คุณล็อกอิน ดูรายชื่อเพื่อนร่วมรุ่น
+          แชร์สถานะ และพูดคุยกันได้ในที่เดียว
+        </p>
+      </section>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      <section className="home-grid">
+        <Link href="/login" className="home-card">
+          <h2>เข้าสู่ระบบ</h2>
+          <p>ล็อกอินเพื่อเข้าถึงข้อมูลส่วนตัวและเริ่มใช้งานทุกฟีเจอร์</p>
+        </Link>
+
+        <Link href="/classroom/2023" className="home-card">
+          <h2>ดูสมาชิกชั้นปี</h2>
+          <p>สำรวจเพื่อนร่วมชั้นปี โดยสามารถเลือกปีที่เข้าศึกษาได้</p>
+        </Link>
+
+        <Link href="/feed" className="home-card">
+          <h2>ฟีดสถานะ</h2>
+          <p>โพสต์ แสดงความคิดเห็น และกดถูกใจสถานะจากเพื่อนในรุ่น</p>
+        </Link>
+      </section>
+    </main>
   );
-}
+};
+
+export default HomePage;
