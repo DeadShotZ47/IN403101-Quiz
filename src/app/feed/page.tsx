@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 import CommentList from "@/components/CommentList";
@@ -9,7 +9,8 @@ import NewStatusForm from "@/components/NewStatusForm";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { sortPostsByDate } from "@/lib/feed";
-import type { StatusPost } from "@/types/feed";
+import type { Comment, StatusPost } from "@/types/feed";
+import "./feed.css";
 
 interface StatusListResponse {
   data?: StatusPost[];
@@ -20,18 +21,35 @@ interface SingleStatusResponse {
   message?: string;
 }
 
+const mergeComment = (prevComment: Comment | undefined, incoming: Comment): Comment => ({
+  ...prevComment,
+  ...incoming,
+  createdBy:
+    typeof incoming.createdBy === "string" && prevComment?.createdBy
+      ? prevComment.createdBy
+      : incoming.createdBy,
+});
+
+const mergePost = (prevPost: StatusPost | undefined, incoming: StatusPost): StatusPost => ({
+  ...prevPost,
+  ...incoming,
+  createdBy:
+    typeof incoming.createdBy === "string" && prevPost?.createdBy
+      ? prevPost.createdBy
+      : incoming.createdBy,
+  comment: incoming.comment?.map((incomingComment) =>
+    mergeComment(prevPost?.comment?.find((c) => c._id === incomingComment._id), incomingComment),
+  ) ?? prevPost?.comment ?? [],
+});
+
 const FeedPage = () => {
   const { token, profile } = useAuth();
   const [posts, setPosts] = useState<StatusPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingPostId, setProcessingPostId] = useState<string | null>(null);
-  const [processingCommentId, setProcessingCommentId] = useState<string | null>(
-    null,
-  );
-  const [creatingCommentFor, setCreatingCommentFor] = useState<string | null>(
-    null,
-  );
+  const [processingCommentId, setProcessingCommentId] = useState<string | null>(null);
+  const [creatingCommentFor, setCreatingCommentFor] = useState<string | null>(null);
 
   const currentUserId = profile?._id ?? null;
 
@@ -46,9 +64,7 @@ const FeedPage = () => {
     setError(null);
 
     try {
-      const response = await apiFetch<StatusListResponse>("/status", {
-        token,
-      });
+      const response = await apiFetch<StatusListResponse>("/status", { token });
       const nextPosts = sortPostsByDate(response.data ?? []);
       setPosts(nextPosts);
     } catch (fetchError) {
@@ -139,7 +155,7 @@ const FeedPage = () => {
       body: JSON.stringify({ content }),
     });
 
-    if (response.data && response.data._id) {
+    if (response.data) {
       setPosts((prev) => sortPostsByDate([response.data as StatusPost, ...prev]));
     } else {
       await fetchPosts();
@@ -188,8 +204,15 @@ const FeedPage = () => {
 
       if (response.data && response.data._id) {
         setPosts((prev) =>
-          prev.map((post) =>
-            post._id === response.data?._id ? (response.data as StatusPost) : post,
+          sortPostsByDate(
+            prev.map((post) =>
+              post._id === response.data?._id
+                ? mergePost(
+                    post,
+                    response.data as StatusPost,
+                  )
+                : post,
+            ),
           ),
         );
       } else {
@@ -218,10 +241,14 @@ const FeedPage = () => {
         token,
         body: JSON.stringify({ statusId, content }),
       });
-      if (response.data && response.data._id) {
+      if (response.data) {
         setPosts((prev) =>
-          prev.map((post) =>
-            post._id === response.data?._id ? (response.data as StatusPost) : post,
+          sortPostsByDate(
+            prev.map((post) =>
+              post._id === response.data?._id
+                ? mergePost(post, response.data as StatusPost)
+                : post,
+            ),
           ),
         );
       } else {
@@ -247,10 +274,14 @@ const FeedPage = () => {
           body: JSON.stringify({ statusId }),
         },
       );
-      if (response.data && response.data._id) {
+      if (response.data) {
         setPosts((prev) =>
-          prev.map((post) =>
-            post._id === response.data?._id ? (response.data as StatusPost) : post,
+          sortPostsByDate(
+            prev.map((post) =>
+              post._id === response.data?._id
+                ? mergePost(post, response.data as StatusPost)
+                : post,
+            ),
           ),
         );
       } else {
@@ -264,31 +295,23 @@ const FeedPage = () => {
     }
   };
 
-  const feedContent = useMemo(() => {
-    if (!token) {
-      return (
-        <div className="info-banner">
-          <p>
-            กรุณา <Link href="/login">เข้าสู่ระบบ</Link> เพื่อดูและโพสต์สถานะ
-          </p>
-        </div>
-      );
-    }
+  let bodyContent: JSX.Element;
 
-    if (isLoading) {
-      return <p className="loading-text">กำลังโหลดฟีด...</p>;
-    }
-
-    if (error) {
-      return <p className="form-error">{error}</p>;
-    }
-
-    if (!posts.length) {
-      return <div className="feed-empty">ยังไม่มีโพสต์ในขณะนี้</div>;
-    }
-
-    return (
-      <div className="feed-list" aria-live="polite">
+  if (!token) {
+    bodyContent = (
+      <div className="feed-empty-card">
+        กรุณา <Link href="/login">เข้าสู่ระบบ</Link> ก่อนเพื่อใช้งานฟีดสถานะ
+      </div>
+    );
+  } else if (isLoading) {
+    bodyContent = <div className="feed-empty-card">กำลังโหลดฟีด...</div>;
+  } else if (error) {
+    bodyContent = <div className="feed-error-card">{error}</div>;
+  } else if (!posts.length) {
+    bodyContent = <div className="feed-empty-card">ยังไม่มีโพสต์ในขณะนี้</div>;
+  } else {
+    bodyContent = (
+      <div className="feed-posts" aria-live="polite">
         {posts.map((post) => {
           const creator =
             typeof post.createdBy === "string"
@@ -311,27 +334,29 @@ const FeedPage = () => {
               <p className="feed-content">{post.content}</p>
 
               <footer className="feed-footer">
-                <div className="feed-actions-row">
-                  <button
-                    type="button"
-                    data-active={liked}
-                    onClick={() => handleLike(post._id)}
-                    disabled={isProcessing}
-                  >
-                    {liked ? "เลิกถูกใจ" : "ถูกใจ"}
-                    <span>{post.likeCount ?? post.like?.length ?? 0}</span>
-                  </button>
+  <div className="feed-actions-row">
+    <button
+      type="button"
+      data-active={liked}
+      onClick={() => handleLike(post._id)}
+      disabled={isProcessing}
+    >
+      {liked ? "เลิกถูกใจ" : "ถูกใจ"}
+      <span className="feed-like-count">{post.likeCount ?? post.like?.length ?? 0}</span>
+    </button>
 
-                  {creator?._id === currentUserId ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteStatus(post._id)}
-                      disabled={isProcessing}
-                    >
-                      ลบโพสต์
-                    </button>
-                  ) : null}
-                </div>
+    {creator?._id === currentUserId ? (
+      <button
+        type="button"
+        onClick={() => handleDeleteStatus(post._id)}
+        disabled={isProcessing}
+      >
+        ลบโพสต์
+      </button>
+    ) : null}
+
+  {/* ✅ ปิด feed-actions-row ตรงนี้ */}
+  </div>
 
                 <CommentList
                   comments={post.comment ?? []}
@@ -351,38 +376,29 @@ const FeedPage = () => {
         })}
       </div>
     );
-  }, [
-    token,
-    isLoading,
-    error,
-    posts,
-    processingPostId,
-    currentUserId,
-    creatingCommentFor,
-    processingCommentId,
-    computeHasLiked,
-  ]);
+  }
 
   return (
-    <main className="page-container feed-page">
-      <header className="feed-header">
+    <main className="feed-shell">
+      <section className="feed-hero">
         <h1>ฟีดสถานะ</h1>
-        <p>ดูโพสต์ล่าสุดจากเพื่อน ๆ และร่วมพูดคุยได้ที่นี่</p>
-      </header>
+        <p>แบ่งปันสิ่งที่อยู่ในใจ พูดคุยกับเพื่อนร่วมรุ่น และติดตามความเคลื่อนไหวได้ในที่เดียว</p>
+        <div className="feed-hero-actions">
+          <Link href="/">กลับหน้าหลัก</Link>
+        </div>
+      </section>
 
       {token ? (
-        <section className="feed-actions">
+        <section className="feed-composer">
+          <header>
+            <h2>โพสต์ข้อความถึงเพื่อน ๆ</h2>
+            <span>ส่งกำลังใจหรือแจ้งข่าวคราวให้ทุกคนรับรู้</span>
+          </header>
           <NewStatusForm onSubmit={handleCreateStatus} />
         </section>
-      ) : (
-        <div className="info-banner">
-          <p>
-            กรุณา <Link href="/login">เข้าสู่ระบบ</Link> ก่อนเพื่อมีส่วนร่วมกับฟีดนี้
-          </p>
-        </div>
-      )}
+      ) : null}
 
-      {feedContent}
+      <section className="feed-body">{bodyContent}</section>
     </main>
   );
 };

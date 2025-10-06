@@ -32,17 +32,8 @@ const MemberCard = ({ member }: MemberCardProps) => {
   const studentId = education?.studentId ?? "-";
   const schoolName = education?.school?.name ?? education?.schoolProvince ?? "-";
 
-  const initials = [firstname?.[0], lastname?.[0]]
-    .filter(Boolean)
-    .join("")
-    .toUpperCase();
-
   return (
     <article className="member-card">
-      <div className="member-avatar" aria-hidden>
-        {initials || "?"}
-      </div>
-
       <div className="member-details">
         <header>
           <h3>{fullName || email}</h3>
